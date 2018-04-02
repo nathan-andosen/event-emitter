@@ -1,5 +1,5 @@
 {
-  "name": "event-emitter",
+  "name": "@thenja/event-emitter",
   "description": "Simple class to emit and subscribe to events",
   "main": "compiled/src/index.js",
   "types": "compiled/src/index.d.ts",
@@ -11,7 +11,7 @@
   ],
   "bugs": "https://github.com/nathan-andosen/event-emitter/issues",
   "homepage": "https://github.com/nathan-andosen/event-emitter",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "license": "MIT",
   "author": "Nathan Anderson",
   "repository": {
