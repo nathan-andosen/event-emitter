@@ -4,4 +4,5 @@ function __export(m) {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./event-emitter"));
+__export(require("./emittable-events"));
 //# sourceMappingURL=index.js.map

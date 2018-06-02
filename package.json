@@ -53,7 +53,8 @@
     ],
     "reporter": [
       "json",
-      "text-summary"
+      "text-summary",
+      "html"
     ]
   }
 }

@@ -36,6 +36,8 @@ var eventEmitter = new EventEmitter();
 
 ### Use as a service
 
+This will be handy if you need a publish and subscribe service for an entire application, you will probably create the EventEmitter class as a singleton for this.
+
 ```javascript
 import { EventEmitter } from '@thenja/event-emitter';
 
@@ -51,8 +53,7 @@ eventEmitter.unsubscribe('custom-event', fnOne);
 ### Use abstract class
 
 A class that extends the EventEmitterAbstract class will basically have a
-property (_this.event_) exposed which is just an instance of the EventEmitter
-class.
+property (_this.event_) exposed which is just an instance of the EventEmitter class. Useful if you want to emit and listen to events inside of a class.
 
 ```javascript
 import { EventEmitterAbstract } from '@thenja/event-emitter';
@@ -77,6 +78,32 @@ class MyClass extends EventEmitterAbstract {
 let myClass = new MyClass();
 myClass.doSomething();
 // Now myClass.val should equal 10
+```
+
+### Use the emittable events abstract class
+
+This is useful if you have a service (normally a singleton) that is used throughout your application and you want to be able to emit events from the service.
+
+```javascript
+import { EmittableEvents } from '@thenja/event-emitter';
+
+class UserService extends EmittableEvents {
+  addUser(username: string) {
+    // perform some functionality to add a user
+    // ...
+    // now emit an event
+    this.emit('user-added', { username: username });
+  }
+}
+
+// normally a service is a singleton used throughout an application
+let userSrv = new UserService();
+let userAdded = (data) => {
+  // event is fired when a user is added
+};
+userSrv.on('user-added', userAdded);
+userSrv.addUser('nathan');
+userSrv.off('user-added', userAdded);
 ```
 
 
