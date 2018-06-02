@@ -60,11 +60,77 @@
 /******/ 	__webpack_require__.p = "/dist/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 0);
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var EmittableEvents = (function () {
+    function EmittableEvents() {
+        this.events = {};
+    }
+    EmittableEvents.prototype.emit = function (eventName, data) {
+        if (this.events[eventName]) {
+            for (var i = 0; i < this.events[eventName].length; i++) {
+                this.events[eventName][i].call(null, data);
+            }
+        }
+    };
+    EmittableEvents.prototype.on = function (eventName, fn, uniqueId) {
+        if (!this.events[eventName]) {
+            this.events[eventName] = [];
+        }
+        fn['onId'] = (uniqueId) ? uniqueId :
+            Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        if (uniqueId) {
+            var foundFunc = false;
+            for (var i = 0; i < this.events[eventName].length; i++) {
+                if (this.events[eventName][i].onId === uniqueId) {
+                    this.events[eventName][i] = fn;
+                    foundFunc = true;
+                    break;
+                }
+            }
+            if (!foundFunc) {
+                this.events[eventName].push(fn);
+            }
+        }
+        else {
+            this.events[eventName].push(fn);
+        }
+    };
+    EmittableEvents.prototype.off = function (eventName, fn) {
+        if (fn instanceof Function && !fn['onId']) {
+            return;
+        }
+        var onId = (typeof fn === 'string') ? fn : fn['onId'];
+        if (!onId) {
+            return;
+        }
+        if (this.events[eventName]) {
+            for (var i = 0; i < this.events[eventName].length; i++) {
+                if (this.events[eventName][i]['onId'] === onId) {
+                    this.events[eventName].splice(i, 1);
+                    break;
+                }
+            }
+        }
+    };
+    EmittableEvents.prototype.offAll = function () {
+        this.events = {};
+    };
+    return EmittableEvents;
+}());
+exports.EmittableEvents = EmittableEvents;
+
+
+/***/ }),
+/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 
@@ -72,16 +138,17 @@
 // so they can be tested in a browser for debugging
 
 // require all test files
-var testsContext = __webpack_require__(1);
+var testsContext = __webpack_require__(2);
 testsContext.keys().forEach(testsContext);
 
 
 /***/ }),
-/* 1 */
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var map = {
-	"./event-emitter.spec": 2
+	"./emittable-events.spec": 3,
+	"./event-emitter.spec": 4
 };
 function webpackContext(req) {
 	return __webpack_require__(webpackContextResolve(req));
@@ -97,10 +164,10 @@ webpackContext.keys = function webpackContextKeys() {
 };
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
-webpackContext.id = 1;
+webpackContext.id = 2;
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -116,7 +183,142 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var src_1 = __webpack_require__(3);
+var emittable_events_1 = __webpack_require__(0);
+var MyClass = (function (_super) {
+    __extends(MyClass, _super);
+    function MyClass() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    MyClass.prototype.fireEvent = function (name, data) {
+        this.emit(name, data);
+    };
+    return MyClass;
+}(emittable_events_1.EmittableEvents));
+describe('Emittable Events', function () {
+    describe('on()', function () {
+        it('should listen to events', function () {
+            var fired = false;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                expect(data.test).toEqual(1);
+                fired = true;
+            };
+            myClass.on('testing', listener);
+            myClass.fireEvent('testing', { test: 1 });
+            expect(fired).toEqual(true);
+            expect(listener['onId']).toBeDefined();
+        });
+        it('should use unique id', function () {
+            var fired = false;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                expect(data.test).toEqual(2);
+                fired = true;
+            };
+            myClass.on('testing', listener, 'myUniqueId');
+            myClass.fireEvent('testing', { test: 2 });
+            expect(fired).toEqual(true);
+            expect(listener['onId']).toEqual('myUniqueId');
+        });
+        it('should only fire event once via unique id', function () {
+            var fired = 0;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                fired++;
+            };
+            var listenerTwo = function (data) {
+                fired++;
+            };
+            myClass.on('testing', listener, 'myUniqueId');
+            myClass.on('testing', listenerTwo, 'myUniqueId');
+            myClass.fireEvent('testing', null);
+            expect(fired).toEqual(1);
+            expect(listener['onId']).toEqual('myUniqueId');
+        });
+    });
+    describe('off()', function () {
+        it('should stop listening to events', function () {
+            var fired = 0;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                expect(data.test).toEqual(1);
+                fired++;
+            };
+            myClass.on('testing', listener);
+            myClass.fireEvent('testing', { test: 1 });
+            expect(fired).toEqual(1);
+            myClass.off('testing', listener);
+            myClass.fireEvent('testing', { test: 1 });
+            expect(fired).toEqual(1);
+        });
+        it('should handle function being passed in with no onId', function () {
+            var fired = 0;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                expect(data.test).toEqual(1);
+                fired++;
+            };
+            myClass.off('testing', listener);
+            myClass.fireEvent('testing', { test: 1 });
+            expect(fired).toEqual(0);
+        });
+        it('should handle string being passed in', function () {
+            var fired = 0;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                expect(data.test).toEqual(1);
+                fired++;
+            };
+            myClass.on('testing', listener, 'myId');
+            myClass.fireEvent('testing', { test: 1 });
+            expect(fired).toEqual(1);
+            myClass.off('testing', 'myId');
+            myClass.fireEvent('testing', { test: 1 });
+            expect(fired).toEqual(1);
+        });
+    });
+    describe('offAll()', function () {
+        it('should stop listening to all events', function () {
+            var fired = 0;
+            var myClass = new MyClass();
+            var listener = function (data) {
+                fired++;
+            };
+            var listenerTwo = function (data) {
+                fired++;
+            };
+            myClass.on('listener', listener);
+            myClass.on('listenerTwo', listenerTwo);
+            myClass.fireEvent('listener', null);
+            myClass.fireEvent('listenerTwo', null);
+            expect(fired).toEqual(2);
+            myClass.offAll();
+            myClass.fireEvent('listener', null);
+            myClass.fireEvent('listenerTwo', null);
+            expect(fired).toEqual(2);
+        });
+    });
+});
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var src_1 = __webpack_require__(5);
 describe('EventEmitter', function () {
     describe('emit()', function () {
         it('should emit an event', function (done) {
@@ -166,7 +368,7 @@ describe('EventEmitterAbstract', function () {
 
 
 /***/ }),
-/* 3 */
+/* 5 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -175,11 +377,12 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-__export(__webpack_require__(4));
+__export(__webpack_require__(6));
+__export(__webpack_require__(0));
 
 
 /***/ }),
-/* 4 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
