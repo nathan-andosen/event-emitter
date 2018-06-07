@@ -42,7 +42,7 @@ describe('Emittable Events', function () {
                 expect(data.test).toEqual(2);
                 fired = true;
             };
-            myClass.on('testing', listener, 'myUniqueId');
+            myClass.on('testing', listener, { uniqueId: "myUniqueId" });
             myClass.fireEvent('testing', { test: 2 });
             expect(fired).toEqual(true);
             expect(listener['onId']).toEqual('myUniqueId');
@@ -56,11 +56,38 @@ describe('Emittable Events', function () {
             var listenerTwo = function (data) {
                 fired++;
             };
-            myClass.on('testing', listener, 'myUniqueId');
-            myClass.on('testing', listenerTwo, 'myUniqueId');
+            myClass.on('testing', listener, { uniqueId: "myUniqueId" });
+            myClass.on('testing', listenerTwo, { uniqueId: "myUniqueId" });
             myClass.fireEvent('testing', null);
             expect(fired).toEqual(1);
             expect(listener['onId']).toEqual('myUniqueId');
+        });
+        it('should handle scope being passed in', function () {
+            var ScopeTest = (function (_super) {
+                __extends(ScopeTest, _super);
+                function ScopeTest() {
+                    return _super !== null && _super.apply(this, arguments) || this;
+                }
+                ScopeTest.prototype.fireEvent = function () {
+                    this.emit('test-event', { val: 100 });
+                };
+                return ScopeTest;
+            }(emittable_events_1.EmittableEvents));
+            var ListenTest = (function () {
+                function ListenTest(scopeTest) {
+                    this.val = null;
+                    this.scopeTest = scopeTest;
+                    this.scopeTest.on('test-event', this.listenToEvent, { scope: this });
+                }
+                ListenTest.prototype.listenToEvent = function (data) {
+                    this.val = data.val;
+                };
+                return ListenTest;
+            }());
+            var scopeTest = new ScopeTest();
+            var listenTest = new ListenTest(scopeTest);
+            scopeTest.fireEvent();
+            expect(listenTest.val).toEqual(100);
         });
     });
     describe('off()', function () {
@@ -96,7 +123,7 @@ describe('Emittable Events', function () {
                 expect(data.test).toEqual(1);
                 fired++;
             };
-            myClass.on('testing', listener, 'myId');
+            myClass.on('testing', listener, { uniqueId: "myId" });
             myClass.fireEvent('testing', { test: 1 });
             expect(fired).toEqual(1);
             myClass.off('testing', 'myId');

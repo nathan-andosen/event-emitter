@@ -7,44 +7,47 @@ var EmittableEvents = (function () {
     EmittableEvents.prototype.emit = function (eventName, data) {
         if (this.events[eventName]) {
             for (var i = 0; i < this.events[eventName].length; i++) {
-                this.events[eventName][i].call(null, data);
+                var scope = (this.events[eventName][i].scope)
+                    ? this.events[eventName][i].scope : null;
+                this.events[eventName][i].fn.call(scope, data);
             }
         }
     };
-    EmittableEvents.prototype.on = function (eventName, fn, uniqueId) {
-        if (!this.events[eventName]) {
+    EmittableEvents.prototype.on = function (eventName, fn, options) {
+        options = options || {};
+        if (!this.events[eventName])
             this.events[eventName] = [];
-        }
-        fn['onId'] = (uniqueId) ? uniqueId :
+        fn['onId'] = (options.uniqueId) ? options.uniqueId :
             Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-        if (uniqueId) {
+        var eventFunction = {
+            fn: fn,
+            scope: options.scope
+        };
+        if (options.uniqueId) {
             var foundFunc = false;
             for (var i = 0; i < this.events[eventName].length; i++) {
-                if (this.events[eventName][i].onId === uniqueId) {
-                    this.events[eventName][i] = fn;
+                if (this.events[eventName][i].fn.onId === options.uniqueId) {
+                    this.events[eventName][i] = eventFunction;
                     foundFunc = true;
                     break;
                 }
             }
-            if (!foundFunc) {
-                this.events[eventName].push(fn);
-            }
+            if (!foundFunc)
+                this.events[eventName].push(eventFunction);
         }
         else {
-            this.events[eventName].push(fn);
+            this.events[eventName].push(eventFunction);
         }
     };
     EmittableEvents.prototype.off = function (eventName, fn) {
-        if (fn instanceof Function && !fn['onId']) {
+        if (fn instanceof Function && !fn['onId'])
             return;
-        }
         var onId = (typeof fn === 'string') ? fn : fn['onId'];
-        if (!onId) {
+        if (!onId)
             return;
-        }
         if (this.events[eventName]) {
             for (var i = 0; i < this.events[eventName].length; i++) {
-                if (this.events[eventName][i]['onId'] === onId) {
+                if (this.events[eventName][i].fn.onId === onId) {
                     this.events[eventName].splice(i, 1);
                     break;
                 }

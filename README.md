@@ -80,9 +80,11 @@ myClass.doSomething();
 // Now myClass.val should equal 10
 ```
 
-### Use the emittable events abstract class
+## Emittable events abstract class
 
 This is useful if you have a service (normally a singleton) that is used throughout your application and you want to be able to emit events from the service.
+
+### Basic usage:
 
 ```javascript
 import { EmittableEvents } from '@thenja/event-emitter';
@@ -106,6 +108,59 @@ userSrv.addUser('nathan');
 userSrv.off('user-added', userAdded);
 ```
 
+### Setting the "this" scope
+
+```javascript
+// this will be our singleton service class
+class ScopeTest extends EmittableEvents {
+  public fireEvent() {
+    this.emit('test-event', { val: 100 });
+  }
+}
+
+class ListenTest {
+  private scopeTest: ScopeTest;
+  val: any = null;
+
+  constructor(scopeTest: ScopeTest) {
+    this.scopeTest = scopeTest;
+    // when you listen to the event, set the scope to "this" so that the 
+    // this keyword refers to the listenTest instance
+    this.scopeTest.on('test-event', this.listenToEvent, { scope: this });
+  }
+
+  listenToEvent(data) {
+    this.val = data.val;
+  }
+}
+
+let scopeTest = new ScopeTest();
+let listenTest = new ListenTest(scopeTest);
+scopeTest.fireEvent();
+expect(listenTest.val).toEqual(100);
+```
+
+### Only one listener per event
+
+_Sometimes you may only want to have one listener function per event, we can 
+accomplish this by using a unqiue id_
+
+```javascript
+let fired = 0;
+let myClass = new MyClass();
+let listener = (data) => {
+  fired++;
+};
+let listenerTwo = (data) => {
+  fired++;
+};
+// even know we attach two listeners, only the last listener will be used 
+// because we have set a uniqueId
+myClass.on('testing', listener, { uniqueId: "myUniqueId" });
+myClass.on('testing', listenerTwo, { uniqueId: "myUniqueId" });
+myClass.fireEvent('testing');
+expect(fired).toEqual(1);
+```
 
 # Development
 

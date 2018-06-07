@@ -34,7 +34,7 @@ describe('Emittable Events', () => {
         expect(data.test).toEqual(2);
         fired = true;
       };
-      myClass.on('testing', listener, 'myUniqueId');
+      myClass.on('testing', listener, { uniqueId: "myUniqueId" });
       myClass.fireEvent('testing', {test: 2});
       expect(fired).toEqual(true);
       expect(listener['onId']).toEqual('myUniqueId');
@@ -49,11 +49,38 @@ describe('Emittable Events', () => {
       let listenerTwo = (data) => {
         fired++;
       };
-      myClass.on('testing', listener, 'myUniqueId');
-      myClass.on('testing', listenerTwo, 'myUniqueId');
+      myClass.on('testing', listener, { uniqueId: "myUniqueId" });
+      myClass.on('testing', listenerTwo, { uniqueId: "myUniqueId" });
       myClass.fireEvent('testing', null);
       expect(fired).toEqual(1);
       expect(listener['onId']).toEqual('myUniqueId');
+    });
+
+    it('should handle scope being passed in', () => {
+      class ScopeTest extends EmittableEvents {
+        public fireEvent() {
+          this.emit('test-event', { val: 100 });
+        }
+      }
+
+      class ListenTest {
+        private scopeTest: ScopeTest;
+        val: any = null;
+
+        constructor(scopeTest: ScopeTest) {
+          this.scopeTest = scopeTest;
+          this.scopeTest.on('test-event', this.listenToEvent, { scope: this });
+        }
+
+        listenToEvent(data) {
+          this.val = data.val;
+        }
+      }
+
+      let scopeTest = new ScopeTest();
+      let listenTest = new ListenTest(scopeTest);
+      scopeTest.fireEvent();
+      expect(listenTest.val).toEqual(100);
     });
   });
 
@@ -97,7 +124,7 @@ describe('Emittable Events', () => {
         expect(data.test).toEqual(1);
         fired++;
       };
-      myClass.on('testing', listener, 'myId');
+      myClass.on('testing', listener, { uniqueId: "myId" });
       myClass.fireEvent('testing', {test: 1});
       expect(fired).toEqual(1);
       myClass.off('testing', 'myId');

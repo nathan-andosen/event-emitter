@@ -77,44 +77,47 @@ var EmittableEvents = (function () {
     EmittableEvents.prototype.emit = function (eventName, data) {
         if (this.events[eventName]) {
             for (var i = 0; i < this.events[eventName].length; i++) {
-                this.events[eventName][i].call(null, data);
+                var scope = (this.events[eventName][i].scope)
+                    ? this.events[eventName][i].scope : null;
+                this.events[eventName][i].fn.call(scope, data);
             }
         }
     };
-    EmittableEvents.prototype.on = function (eventName, fn, uniqueId) {
-        if (!this.events[eventName]) {
+    EmittableEvents.prototype.on = function (eventName, fn, options) {
+        options = options || {};
+        if (!this.events[eventName])
             this.events[eventName] = [];
-        }
-        fn['onId'] = (uniqueId) ? uniqueId :
+        fn['onId'] = (options.uniqueId) ? options.uniqueId :
             Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-        if (uniqueId) {
+        var eventFunction = {
+            fn: fn,
+            scope: options.scope
+        };
+        if (options.uniqueId) {
             var foundFunc = false;
             for (var i = 0; i < this.events[eventName].length; i++) {
-                if (this.events[eventName][i].onId === uniqueId) {
-                    this.events[eventName][i] = fn;
+                if (this.events[eventName][i].fn.onId === options.uniqueId) {
+                    this.events[eventName][i] = eventFunction;
                     foundFunc = true;
                     break;
                 }
             }
-            if (!foundFunc) {
-                this.events[eventName].push(fn);
-            }
+            if (!foundFunc)
+                this.events[eventName].push(eventFunction);
         }
         else {
-            this.events[eventName].push(fn);
+            this.events[eventName].push(eventFunction);
         }
     };
     EmittableEvents.prototype.off = function (eventName, fn) {
-        if (fn instanceof Function && !fn['onId']) {
+        if (fn instanceof Function && !fn['onId'])
             return;
-        }
         var onId = (typeof fn === 'string') ? fn : fn['onId'];
-        if (!onId) {
+        if (!onId)
             return;
-        }
         if (this.events[eventName]) {
             for (var i = 0; i < this.events[eventName].length; i++) {
-                if (this.events[eventName][i]['onId'] === onId) {
+                if (this.events[eventName][i].fn.onId === onId) {
                     this.events[eventName].splice(i, 1);
                     break;
                 }
@@ -215,7 +218,7 @@ describe('Emittable Events', function () {
                 expect(data.test).toEqual(2);
                 fired = true;
             };
-            myClass.on('testing', listener, 'myUniqueId');
+            myClass.on('testing', listener, { uniqueId: "myUniqueId" });
             myClass.fireEvent('testing', { test: 2 });
             expect(fired).toEqual(true);
             expect(listener['onId']).toEqual('myUniqueId');
@@ -229,11 +232,38 @@ describe('Emittable Events', function () {
             var listenerTwo = function (data) {
                 fired++;
             };
-            myClass.on('testing', listener, 'myUniqueId');
-            myClass.on('testing', listenerTwo, 'myUniqueId');
+            myClass.on('testing', listener, { uniqueId: "myUniqueId" });
+            myClass.on('testing', listenerTwo, { uniqueId: "myUniqueId" });
             myClass.fireEvent('testing', null);
             expect(fired).toEqual(1);
             expect(listener['onId']).toEqual('myUniqueId');
+        });
+        it('should handle scope being passed in', function () {
+            var ScopeTest = (function (_super) {
+                __extends(ScopeTest, _super);
+                function ScopeTest() {
+                    return _super !== null && _super.apply(this, arguments) || this;
+                }
+                ScopeTest.prototype.fireEvent = function () {
+                    this.emit('test-event', { val: 100 });
+                };
+                return ScopeTest;
+            }(emittable_events_1.EmittableEvents));
+            var ListenTest = (function () {
+                function ListenTest(scopeTest) {
+                    this.val = null;
+                    this.scopeTest = scopeTest;
+                    this.scopeTest.on('test-event', this.listenToEvent, { scope: this });
+                }
+                ListenTest.prototype.listenToEvent = function (data) {
+                    this.val = data.val;
+                };
+                return ListenTest;
+            }());
+            var scopeTest = new ScopeTest();
+            var listenTest = new ListenTest(scopeTest);
+            scopeTest.fireEvent();
+            expect(listenTest.val).toEqual(100);
         });
     });
     describe('off()', function () {
@@ -269,7 +299,7 @@ describe('Emittable Events', function () {
                 expect(data.test).toEqual(1);
                 fired++;
             };
-            myClass.on('testing', listener, 'myId');
+            myClass.on('testing', listener, { uniqueId: "myId" });
             myClass.fireEvent('testing', { test: 1 });
             expect(fired).toEqual(1);
             myClass.off('testing', 'myId');
