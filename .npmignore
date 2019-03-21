@@ -3,3 +3,12 @@ debug/
 dist/
 dev-only/
 compiled/spec
+coverage/
+dev/
+scripts/
+spec/
+coverage.shield.badge.md
+webpack-unit-tests.config.js
+webpack.config.js
+tsconfig.json
+Gruntfile.js

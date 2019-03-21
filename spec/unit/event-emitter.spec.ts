@@ -37,6 +37,36 @@ describe('EventEmitter', () => {
       expect(eventEmitter['events']['test'].length).toEqual(0);
     });
   });
+
+
+
+  describe('extend EventEmitter', () => {
+    it('should be able to extend EventEmitter', (done) => {
+      class AppEvents extends EventEmitter {}
+      const appEvents = new AppEvents();
+      class Home {
+        listen() {
+          appEvents.subscribe('event-1', this.listener, { scope: this });
+        }
+
+        unsubscribe() {
+          appEvents.unsubscribe('event-1', this.listener);
+        }
+
+        private listener(data) {
+          const val = this.sayHi();
+          expect(val).toEqual('Hi');
+          this.unsubscribe();
+          done();
+        }
+
+        private sayHi() { return 'Hi'; }
+      }
+      const home = new Home();
+      home.listen();
+      appEvents.emit('event-1', { val: 10 });
+    });
+  });
 });
 
 

@@ -371,6 +371,39 @@ describe('EventEmitter', function () {
             expect(eventEmitter['events']['test'].length).toEqual(0);
         });
     });
+    describe('extend EventEmitter', function () {
+        it('should be able to extend EventEmitter', function (done) {
+            var AppEvents = (function (_super) {
+                __extends(AppEvents, _super);
+                function AppEvents() {
+                    return _super !== null && _super.apply(this, arguments) || this;
+                }
+                return AppEvents;
+            }(src_1.EventEmitter));
+            var appEvents = new AppEvents();
+            var Home = (function () {
+                function Home() {
+                }
+                Home.prototype.listen = function () {
+                    appEvents.subscribe('event-1', this.listener, { scope: this });
+                };
+                Home.prototype.unsubscribe = function () {
+                    appEvents.unsubscribe('event-1', this.listener);
+                };
+                Home.prototype.listener = function (data) {
+                    var val = this.sayHi();
+                    expect(val).toEqual('Hi');
+                    this.unsubscribe();
+                    done();
+                };
+                Home.prototype.sayHi = function () { return 'Hi'; };
+                return Home;
+            }());
+            var home = new Home();
+            home.listen();
+            appEvents.emit('event-1', { val: 10 });
+        });
+    });
 });
 describe('EventEmitterAbstract', function () {
     it('should extend EventEmitter and use events in another class', function () {
@@ -421,6 +454,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var EventEmitter = (function () {
     function EventEmitter(scope) {
         this.events = {};
+        this.events = {};
         this.scope = (scope) ? scope : null;
     }
     EventEmitter.prototype.generateId = function () {
@@ -431,24 +465,48 @@ var EventEmitter = (function () {
         var events = this.events[eventName];
         if (events) {
             for (var i = 0; i < events.length; i++) {
-                events[i].call(this.scope, data);
+                var scope = (this.scope) ? this.scope : this;
+                if (events[i].scope) {
+                    scope = events[i].scope;
+                }
+                events[i].fn.call(scope, data);
             }
         }
     };
-    EventEmitter.prototype.subscribe = function (eventName, fn) {
+    EventEmitter.prototype.subscribe = function (eventName, fn, options) {
+        options = options || {};
         if (!this.events[eventName]) {
             this.events[eventName] = [];
         }
-        fn['subscribeId'] = this.generateId();
-        this.events[eventName].push(fn);
+        fn['subscribeId'] = (options.uniqueId)
+            ? options.uniqueId : this.generateId();
+        var eventFunction = {
+            fn: fn,
+            scope: options.scope
+        };
+        if (options.uniqueId) {
+            var foundFunc = false;
+            for (var i = 0; i < this.events[eventName].length; i++) {
+                if (this.events[eventName][i].fn.onId === options.uniqueId) {
+                    this.events[eventName][i] = eventFunction;
+                    foundFunc = true;
+                    break;
+                }
+            }
+            if (!foundFunc)
+                this.events[eventName].push(eventFunction);
+        }
+        else {
+            this.events[eventName].push(eventFunction);
+        }
     };
     EventEmitter.prototype.unsubscribe = function (eventName, fn) {
-        if (!fn['subscribeId']) {
+        if (fn instanceof Function && !fn['subscribeId']) {
             return;
         }
         if (this.events[eventName]) {
             for (var i = 0; i < this.events[eventName].length; i++) {
-                if (this.events[eventName][i]['subscribeId'] === fn['subscribeId']) {
+                if (this.events[eventName][i].fn['subscribeId'] === fn['subscribeId']) {
                     this.events[eventName].splice(i, 1);
                     break;
                 }

@@ -1,4 +1,4 @@
-![Test Coverage-shield-badge-1](https://img.shields.io/badge/Test%20Coverage-100%25-brightgreen.svg)
+![Test Coverage-shield-badge-1](https://img.shields.io/badge/Test%20Coverage-90.54%25-brightgreen.svg)
 
 # EventEmitter
 
@@ -6,7 +6,7 @@ Simple service used to emit and subscribe to events.
 
 # How to use
 
-``npm install @thenja/event-emitter``
+``npm install @thenja/event-emitter --save``
 
 ## Installation
 
@@ -29,7 +29,7 @@ var eventEmitter = new EventEmitter();
 |Method|Description|
 |------|-----------|
 |emit(eventName: string, data: any)|Emit the event to any subscribers|
-|subscribe(eventName: string, fn: Function)|Subscribe to an event, the function will be called once the event is emitted|
+|subscribe(eventName: string, fn: Function, options?: iSubscribeOptions)|Subscribe to an event, the function will be called once the event is emitted|
 |unsubscribe(eventName: string, fn: Function)|Unsubscribe from an event|
 
 ## Use cases & examples
@@ -48,6 +48,32 @@ let fnOne = (data) => {
 eventEmitter.subscribe('custom-event', fnOne);
 eventEmitter.emit('custom-event', { val: 10 });
 eventEmitter.unsubscribe('custom-event', fnOne);
+```
+
+__Extending EventEmitter__
+
+```javascript
+import { EventEmitter } from '@thenja/event-emitter';
+
+class AppEvents extends EventEmitter {}
+const appEvents = new AppEvents();
+
+class Home {
+  listen() {
+    // you can set the scope to this object
+    appEvents.subscribe('event-1', this.listener, { scope: this });
+  }
+
+  private listener(data) {
+    const val = this.sayHi();
+    expect(val).toEqual('Hi');
+  }
+
+  private sayHi() { return 'Hi'; }
+}
+const home = new Home();
+home.listen();
+appEvents.emit('event-1', { val: 10 });
 ```
 
 ### Use abstract class
