@@ -12,3 +12,6 @@ webpack-unit-tests.config.js
 webpack.config.js
 tsconfig.json
 Gruntfile.js
+.vscode/
+.gitattributes
+.nyc_output/
