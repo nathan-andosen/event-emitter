@@ -1,5 +1,7 @@
 ![Test Coverage-shield-badge-1](https://img.shields.io/badge/Test%20Coverage-90.54%25-brightgreen.svg)
 
+__DEPRECATED__ : Use https://github.com/nathan-andosen/event-manager
+
 # EventEmitter
 
 Simple service used to emit and subscribe to events.
